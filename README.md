@@ -79,7 +79,7 @@ save_model.py:
   --model: yolov3 or yolov4
     (default: yolov4)
     
- detect_video.py:
+ object_tracker.py:
   --video: path to input video (use 0 for webcam)
     (default: './data/video/video.mp4')
   --output: path to output video (remember to set right codec for given format. e.g. XVID for .avi)
