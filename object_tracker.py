@@ -7,6 +7,7 @@ from absl import app, flags, logging
 from absl.flags import FLAGS
 import core.utils as utils
 from core.yolov4 import filter_boxes
+from core.functions import count_objects
 from tensorflow.python.saved_model import tag_constants
 from core.config import cfg
 from PIL import Image
@@ -151,13 +152,27 @@ def main(_argv):
         # read in all class names from config
         class_names = utils.read_class_names(cfg.YOLO.CLASSES)
 
-        # loop through objects and use class index to get class name
+        # by default allow all classes in .names file
+        allowed_classes = list(class_names.values())
+        
+        # custom allowed classes (uncomment line below to customize tracker for only people)
+        #allowed_classes = ['person']
+
+        # loop through objects and use class index to get class name, allow only classes in allowed_classes list
         names = []
+        deleted_indx = []
         for i in range(num_objects):
             class_indx = int(classes[i])
             class_name = class_names[class_indx]
-            names.append(class_name)
+            if class_name not in allowed_classes:
+                deleted_indx.append(i)
+            else:
+                names.append(class_name)
         names = np.array(names)
+
+        # delete detections that are not in allowed_classes
+        bboxes = np.delete(bboxes, deleted_indx, axis=0)
+        scores = np.delete(scores, deleted_indx, axis=0)
 
         # encode yolo detections and feed to tracker
         features = encoder(frame, bboxes)
@@ -201,6 +216,7 @@ def main(_argv):
         if not FLAGS.dont_show:
             cv2.imshow("Output Video", result)
         
+        # if output flag is set, save video file
         if FLAGS.output:
             out.write(result)
         if cv2.waitKey(1) & 0xFF == ord('q'): break
