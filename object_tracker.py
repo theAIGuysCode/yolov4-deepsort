@@ -10,7 +10,6 @@ from absl import app, flags, logging
 from absl.flags import FLAGS
 import core.utils as utils
 from core.yolov4 import filter_boxes
-from core.functions import count_objects
 from tensorflow.python.saved_model import tag_constants
 from core.config import cfg
 from PIL import Image
