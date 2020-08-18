@@ -130,6 +130,8 @@ save_model.py:
     (default: 0.50)
   --dont_show: dont show video output
     (default: False)
+  --info: print detailed info about tracked objects
+    (default: False)
 ```
 
 ### References  
