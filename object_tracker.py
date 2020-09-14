@@ -25,6 +25,9 @@ from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
 from tools import generate_detections as gdet
 
+from google.colab.patches import cv2_imshow
+#cv2_imshow(img)
+
 flags.DEFINE_string('framework', 'tf', '(tf, tflite, trt')
 flags.DEFINE_string('weights', './checkpoints/yolov4-416',
                     'path to weights file')
@@ -225,7 +228,8 @@ def main(_argv):
         result = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
         
         if not FLAGS.dont_show:
-            cv2.imshow("Output Video", result)
+            #cv2.imshow("Output Video", result)
+            cv2_imshow(result)
         
         # if output flag is set, save video file
         if FLAGS.output:
