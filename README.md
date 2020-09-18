@@ -25,6 +25,7 @@ conda activate yolov4-gpu
 ```
 
 ### Pip
+(TensorFlow 2 packages require a pip version >19.0.)
 ```bash
 # TensorFlow CPU
 pip install -r requirements.txt
