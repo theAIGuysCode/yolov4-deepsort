@@ -229,7 +229,7 @@ def main(_argv):
         result = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
         
         if FLAGS.cloud:
-            cv2_imshow(results)
+            cv2_imshow(result)
         else:
             if not FLAGS.dont_show:
                 cv2.imshow("DeepSort Object Tracker", result)
