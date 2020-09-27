@@ -39,8 +39,12 @@ flags.DEFINE_float('score', 0.50, 'score threshold')
 flags.DEFINE_boolean('dont_show', False, 'dont show video output')
 flags.DEFINE_boolean('info', False, 'show detailed info of tracked objects')
 flags.DEFINE_boolean('count', False, 'count objects being tracked on screen')
+flags.DEFINE_boolean('cloud', False, 'enable running of deepsort in google colab etc.')
 
 def main(_argv):
+    # for running in Google Colab
+    if FLAGS.cloud:
+        from google.colab.patches import cv2_imshow
     # Definition of the parameters
     max_cosine_distance = 0.4
     nn_budget = None
@@ -224,9 +228,12 @@ def main(_argv):
         result = np.asarray(frame)
         result = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
         
-        if not FLAGS.dont_show:
-            cv2.imshow("Output Video", result)
-        
+        if FLAGS.cloud:
+            cv2_imshow(results)
+        else:
+            if not FLAGS.dont_show:
+                cv2.imshow("DeepSort Object Tracker", result)
+
         # if output flag is set, save video file
         if FLAGS.output:
             out.write(result)
