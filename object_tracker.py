@@ -103,6 +103,7 @@ def main(_argv):
         frame_num +=1
         print('Frame #: ', frame_num)
         frame_size = frame.shape[:2]
+        # why input_size default is 416
         image_data = cv2.resize(frame, (input_size, input_size))
         image_data = image_data / 255.
         image_data = image_data[np.newaxis, ...].astype(np.float32)
@@ -122,22 +123,29 @@ def main(_argv):
                                                 input_shape=tf.constant([input_size, input_size]))
         else:
             batch_data = tf.constant(image_data)
+            #infer input format and output format?
             pred_bbox = infer(batch_data)
             for key, value in pred_bbox.items():
+                #n*m*k 取k的前4位（bbox的必要属性）n是batch_size?
                 boxes = value[:, :, 0:4]
                 pred_conf = value[:, :, 4:]
-
+        #shape of boxes [batch_size, max_detections, 4]
         boxes, scores, classes, valid_detections = tf.image.combined_non_max_suppression(
+            #tf.shape(boxes) = [n,m,4]   shape= [batch_size, num_boxes, q, 4]
             boxes=tf.reshape(boxes, (tf.shape(boxes)[0], -1, 1, 4)),
             scores=tf.reshape(
+                #[batch_size, num_boxes, num_classes]
                 pred_conf, (tf.shape(pred_conf)[0], -1, tf.shape(pred_conf)[-1])),
             max_output_size_per_class=50,
             max_total_size=50,
+            #重叠的调整策略可以修改这里
             iou_threshold=FLAGS.iou,
+            #基于分数的调整策略可以修改这里
             score_threshold=FLAGS.score
         )
 
         # convert data to numpy arrays and slice out unused elements
+        #batch_size=1?
         num_objects = valid_detections.numpy()[0]
         bboxes = boxes.numpy()[0]
         bboxes = bboxes[0:int(num_objects)]
