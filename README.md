@@ -55,6 +55,9 @@ python save_model.py --model yolov4
 # Run yolov4 deep sort object tracker on video
 python object_tracker.py --video ./data/video/test.mp4 --output ./outputs/demo.avi --model yolov4
 
+# footbal
+python object_tracker.py --video data/video/football1.mp4 --output outputs/football1.mp4
+
 # Run yolov4 deep sort object tracker on webcam (set video flag to 0)
 python object_tracker.py --video 0 --output ./outputs/webcam.avi --model yolov4
 ```

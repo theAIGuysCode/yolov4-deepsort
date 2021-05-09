@@ -23,6 +23,9 @@ from deep_sort import preprocessing, nn_matching
 from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
 from tools import generate_detections as gdet
+import perspective_transfrom as pt
+from copy import copy,deepcopy
+
 flags.DEFINE_string('framework', 'tf', '(tf, tflite, trt')
 flags.DEFINE_string('weights', './checkpoints/yolov4-416',
                     'path to weights file')
@@ -37,6 +40,12 @@ flags.DEFINE_float('score', 0.50, 'score threshold')
 flags.DEFINE_boolean('dont_show', False, 'dont show video output')
 flags.DEFINE_boolean('info', False, 'show detailed info of tracked objects')
 flags.DEFINE_boolean('count', False, 'count objects being tracked on screen')
+flags.DEFINE_string('birdview',None,'path to output bird-view video')
+#get the perspective points
+#ref_points=extract_pixel_pos.extract_points()
+# video_points=[(1431, 397), (450, 397), (940, 97), (940, 1022)]
+# soccer_field_points=[(594,327),(429,327),(512,26),(512,626)]
+soccer_filed_img=cv2.imread('data/video/Soccer_field.png')
 
 def main(_argv):
     # Definition of the parameters
@@ -80,6 +89,7 @@ def main(_argv):
         vid = cv2.VideoCapture(video_path)
 
     out = None
+    soccer_filed_out=None
 
     # get video ready to save locally if flag is set
     if FLAGS.output:
@@ -89,6 +99,12 @@ def main(_argv):
         fps = int(vid.get(cv2.CAP_PROP_FPS))
         codec = cv2.VideoWriter_fourcc(*FLAGS.output_format)
         out = cv2.VideoWriter(FLAGS.output, codec, fps, (width, height))
+
+    if FLAGS.birdview:
+        (height,width,_)=soccer_filed_img.shape #attention
+        fps = int(vid.get(cv2.CAP_PROP_FPS))#use the input video fps
+        codec = cv2.VideoWriter_fourcc(*FLAGS.output_format)
+        soccer_filed_out=cv2.VideoWriter(FLAGS.birdview,codec,fps,(width,height))
 
     frame_num = 0
     # while video is running
@@ -165,10 +181,10 @@ def main(_argv):
         class_names = utils.read_class_names(cfg.YOLO.CLASSES)
 
         # by default allow all classes in .names file
-        allowed_classes = list(class_names.values())
+        #allowed_classes = list(class_names.values())
         
         # custom allowed classes (uncomment line below to customize tracker for only people)
-        #allowed_classes = ['person']
+        allowed_classes = ['person']
 
         # loop through objects and use class index to get class name, allow only classes in allowed_classes list
         names = []
@@ -208,6 +224,9 @@ def main(_argv):
         tracker.predict()
         tracker.update(detections)
 
+        #deepcopy from img
+        soccer_filed_img_copy=deepcopy(soccer_filed_img)
+
         # update tracks
         for track in tracker.tracks:
             if not track.is_confirmed() or track.time_since_update > 1:
@@ -219,9 +238,14 @@ def main(_argv):
             color = colors[int(track.track_id) % len(colors)]
             color = [i * 255 for i in color]
             cv2.rectangle(frame, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), color, 2)
-            cv2.rectangle(frame, (int(bbox[0]), int(bbox[1]-30)), (int(bbox[0])+(len(class_name)+len(str(track.track_id)))*17, int(bbox[1])), color, -1)
-            cv2.putText(frame, class_name + "-" + str(track.track_id),(int(bbox[0]), int(bbox[1]-10)),0, 0.75, (255,255,255),2)
-
+            #cv2.rectangle(frame, (int(bbox[0]), int(bbox[1]-30)), (int(bbox[0])+(len(class_name)+len(str(track.track_id)))*17, int(bbox[1])), color, -1)
+            # cv2.putText(frame, class_name + "-" + str(track.track_id),(int(bbox[0]), int(bbox[1]-10)),0, 0.75, (255,255,255),2)
+        
+        # draw the bird view
+            color=(100,100,255)
+            people_point=((bbox[0]+bbox[2])/2,bbox[3])
+            people_point=pt.perspective_transform(people_point)
+            cv2.circle(soccer_filed_img_copy,people_point,2,color,thickness=2)
         # if enable info flag then print details about each track
             if FLAGS.info:
                 print("Tracker ID: {}, Class: {},  BBox Coords (xmin, ymin, xmax, ymax): {}".format(str(track.track_id), class_name, (int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3]))))
@@ -232,12 +256,22 @@ def main(_argv):
         result = np.asarray(frame)
         result = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
         
+        #bird view result
+        bird_result=np.array(soccer_filed_img_copy)
+        bird_result=cv2.cvtColor(bird_result,cv2.COLOR_RGB2BGR)
+
         if not FLAGS.dont_show:
             cv2.imshow("Output Video", result)
         
+        #show the bird view
+        cv2.imshow('Bird view',soccer_filed_img_copy)
+
         # if output flag is set, save video file
         if FLAGS.output:
             out.write(result)
+        if FLAGS.birdview:
+            soccer_filed_out.write(bird_result)
+
         if cv2.waitKey(1) & 0xFF == ord('q'): break
     cv2.destroyAllWindows()
 
