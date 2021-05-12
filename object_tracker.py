@@ -23,9 +23,7 @@ from deep_sort import preprocessing, nn_matching
 from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
 from tools import generate_detections as gdet
-import perspective_transfrom as pt
-from copy import copy,deepcopy
-
+import collections
 flags.DEFINE_string('framework', 'tf', '(tf, tflite, trt')
 flags.DEFINE_string('weights', './checkpoints/yolov4-416',
                     'path to weights file')
@@ -40,12 +38,54 @@ flags.DEFINE_float('score', 0.50, 'score threshold')
 flags.DEFINE_boolean('dont_show', False, 'dont show video output')
 flags.DEFINE_boolean('info', False, 'show detailed info of tracked objects')
 flags.DEFINE_boolean('count', False, 'count objects being tracked on screen')
-flags.DEFINE_string('birdview',None,'path to output bird-view video')
-#get the perspective points
-#ref_points=extract_pixel_pos.extract_points()
-# video_points=[(1431, 397), (450, 397), (940, 97), (940, 1022)]
-# soccer_field_points=[(594,327),(429,327),(512,26),(512,626)]
-soccer_filed_img=cv2.imread('data/video/Soccer_field.png')
+
+
+def getColorList():
+    dict = collections.defaultdict(list)
+ 
+    # 白色
+    lower_white = np.array([0, 0, 221])
+    upper_white = np.array([180, 30, 255])
+    color_list = []
+    color_list.append(lower_white)
+    color_list.append(upper_white)
+    color_list.append([248, 248, 255])
+    dict['white'] = color_list
+
+ 
+    #蓝色
+    lower_blue = np.array([100, 43, 46])
+    upper_blue = np.array([124, 255, 255])
+    color_list = []
+    color_list.append(lower_blue)
+    color_list.append(upper_blue)
+    color_list.append([0, 0, 221])
+    dict['blue'] = color_list
+ 
+    return dict
+
+def get_color(frame):
+    hsv = cv2.cvtColor(frame,cv2.COLOR_BGR2HSV)
+    maxsum = -100
+    color = None
+    color_dict = getColorList()
+    for d in color_dict:
+        mask = cv2.inRange(hsv,color_dict[d][0],color_dict[d][1])
+        #binary = cv2.threshold(mask, 127, 255, cv2.THRESH_BINARY)[1]
+        #binary = cv2.dilate(binary,None,iterations=2)
+        #cnts, hiera = cv2.findContours(binary.copy(),cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+        s = sum(mask.flatten())
+        #for c in cnts:
+        #    sum+=cv2.contourArea(c)
+        if s > maxsum :
+            maxsum = s
+            color = d
+    if(color=='blue'):
+        for d in color_dict:
+            mask = cv2.inRange(hsv,color_dict[d][0],color_dict[d][1])
+            print(sum(mask.flatten()))
+
+    return color
 
 def main(_argv):
     # Definition of the parameters
@@ -89,7 +129,6 @@ def main(_argv):
         vid = cv2.VideoCapture(video_path)
 
     out = None
-    soccer_filed_out=None
 
     # get video ready to save locally if flag is set
     if FLAGS.output:
@@ -100,16 +139,14 @@ def main(_argv):
         codec = cv2.VideoWriter_fourcc(*FLAGS.output_format)
         out = cv2.VideoWriter(FLAGS.output, codec, fps, (width, height))
 
-    if FLAGS.birdview:
-        (height,width,_)=soccer_filed_img.shape #attention
-        fps = int(vid.get(cv2.CAP_PROP_FPS))#use the input video fps
-        codec = cv2.VideoWriter_fourcc(*FLAGS.output_format)
-        soccer_filed_out=cv2.VideoWriter(FLAGS.birdview,codec,fps,(width,height))
-
+    color_dict = getColorList()
     frame_num = 0
+
     # while video is running
     while True:
         return_value, frame = vid.read()
+        pic = frame.copy()
+        cv2.imwrite("pic.png", pic)
         if return_value:
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             image = Image.fromarray(frame)
@@ -119,7 +156,6 @@ def main(_argv):
         frame_num +=1
         print('Frame #: ', frame_num)
         frame_size = frame.shape[:2]
-        # why input_size default is 416
         image_data = cv2.resize(frame, (input_size, input_size))
         image_data = image_data / 255.
         image_data = image_data[np.newaxis, ...].astype(np.float32)
@@ -139,29 +175,22 @@ def main(_argv):
                                                 input_shape=tf.constant([input_size, input_size]))
         else:
             batch_data = tf.constant(image_data)
-            #infer input format and output format?
             pred_bbox = infer(batch_data)
             for key, value in pred_bbox.items():
-                #n*m*k 取k的前4位（bbox的必要属性）n是batch_size?
                 boxes = value[:, :, 0:4]
                 pred_conf = value[:, :, 4:]
-        #shape of boxes [batch_size, max_detections, 4]
+
         boxes, scores, classes, valid_detections = tf.image.combined_non_max_suppression(
-            #tf.shape(boxes) = [n,m,4]   shape= [batch_size, num_boxes, q, 4]
             boxes=tf.reshape(boxes, (tf.shape(boxes)[0], -1, 1, 4)),
             scores=tf.reshape(
-                #[batch_size, num_boxes, num_classes]
                 pred_conf, (tf.shape(pred_conf)[0], -1, tf.shape(pred_conf)[-1])),
             max_output_size_per_class=50,
             max_total_size=50,
-            #重叠的调整策略可以修改这里
             iou_threshold=FLAGS.iou,
-            #基于分数的调整策略可以修改这里
             score_threshold=FLAGS.score
         )
 
         # convert data to numpy arrays and slice out unused elements
-        #batch_size=1?
         num_objects = valid_detections.numpy()[0]
         bboxes = boxes.numpy()[0]
         bboxes = bboxes[0:int(num_objects)]
@@ -182,9 +211,10 @@ def main(_argv):
 
         # by default allow all classes in .names file
         #allowed_classes = list(class_names.values())
-        
+        allowed_classes = ['person', 'sports ball']
+        # allowed_classes = ['sports ball']
         # custom allowed classes (uncomment line below to customize tracker for only people)
-        allowed_classes = ['person']
+        #allowed_classes = ['person']
 
         # loop through objects and use class index to get class name, allow only classes in allowed_classes list
         names = []
@@ -224,28 +254,31 @@ def main(_argv):
         tracker.predict()
         tracker.update(detections)
 
-        #deepcopy from img
-        soccer_filed_img_copy=deepcopy(soccer_filed_img)
-
         # update tracks
         for track in tracker.tracks:
             if not track.is_confirmed() or track.time_since_update > 1:
                 continue 
             bbox = track.to_tlbr()
-            class_name = track.get_class()
-            
+            #class_name = track.get_class()
+            class_name = str(track.track_id)
+
         # draw bbox on screen
-            color = colors[int(track.track_id) % len(colors)]
-            color = [i * 255 for i in color]
-            cv2.rectangle(frame, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), color, 2)
-            #cv2.rectangle(frame, (int(bbox[0]), int(bbox[1]-30)), (int(bbox[0])+(len(class_name)+len(str(track.track_id)))*17, int(bbox[1])), color, -1)
-            # cv2.putText(frame, class_name + "-" + str(track.track_id),(int(bbox[0]), int(bbox[1]-10)),0, 0.75, (255,255,255),2)
-        
-        # draw the bird view
-            color=(100,100,255)
-            people_point=((bbox[0]+bbox[2])/2,bbox[3])
-            people_point=pt.perspective_transform(people_point)
-            cv2.circle(soccer_filed_img_copy,people_point,2,color,thickness=2)
+            #color = colors[int(track.track_id) % len(colors)]
+            #color = [i * 255 for i in color]
+            cv2.imwrite("p"+str(track.track_id)+".png", pic[int(max(0,min(bbox[1],bbox[3]))):int(max(bbox[1],bbox[3])), int(max(min(bbox[0],bbox[2]),0)):int(max(bbox[2],bbox[0]))])
+            color = get_color(pic[int(max(0,min(bbox[1],bbox[3]))):int(max(bbox[1],bbox[3])), int(max(min(bbox[0],bbox[2]),0)):int(max(bbox[2],bbox[0]))])
+            temp = []
+            for i in color_dict[color][2]:
+                temp.append(int(i))
+            if color=='blue':
+                print(track.track_id)
+            if(len(frame)*0.5<= abs(int(bbox[1]-bbox[3]))):
+                continue
+            cv2.rectangle(frame, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), temp, 2)
+            cv2.rectangle(frame, (int(bbox[0]), int(bbox[1]-5)), (int(bbox[0])+(len(class_name)+len(str(track.track_id)))*7, int(bbox[1])), temp, -1)
+            #cv2.putText(frame, class_name + "-" + str(track.track_id),(int(bbox[0]), int(bbox[1]-10)),0, 0.3, (255,255,255),2)
+            cv2.putText(frame, class_name,(int(bbox[0]), int(bbox[1]-10)),0, 0.3, (255,255,255),2)
+
         # if enable info flag then print details about each track
             if FLAGS.info:
                 print("Tracker ID: {}, Class: {},  BBox Coords (xmin, ymin, xmax, ymax): {}".format(str(track.track_id), class_name, (int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3]))))
@@ -256,22 +289,12 @@ def main(_argv):
         result = np.asarray(frame)
         result = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
         
-        #bird view result
-        bird_result=np.array(soccer_filed_img_copy)
-        bird_result=cv2.cvtColor(bird_result,cv2.COLOR_RGB2BGR)
-
         if not FLAGS.dont_show:
             cv2.imshow("Output Video", result)
         
-        #show the bird view
-        cv2.imshow('Bird view',soccer_filed_img_copy)
-
         # if output flag is set, save video file
         if FLAGS.output:
             out.write(result)
-        if FLAGS.birdview:
-            soccer_filed_out.write(bird_result)
-
         if cv2.waitKey(1) & 0xFF == ord('q'): break
     cv2.destroyAllWindows()
 
