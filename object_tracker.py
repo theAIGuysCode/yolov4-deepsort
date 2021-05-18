@@ -24,8 +24,7 @@ from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
 from tools import generate_detections as gdet
 flags.DEFINE_string('framework', 'tf', '(tf, tflite, trt')
-flags.DEFINE_string('weights', './checkpoints/yolov4-416',
-                    'path to weights file')
+flags.DEFINE_string('weights', './checkpoints/yolov4-416','path to weights file')
 flags.DEFINE_integer('size', 416, 'resize images to')
 flags.DEFINE_boolean('tiny', False, 'yolo or yolo-tiny')
 flags.DEFINE_string('model', 'yolov4', 'yolov3 or yolov4')
@@ -160,7 +159,7 @@ def main(_argv):
         allowed_classes = list(class_names.values())
         
         # custom allowed classes (uncomment line below to customize tracker for only people)
-        #allowed_classes = ['person']
+        allowed_classes = ['person']
 
         # loop through objects and use class index to get class name, allow only classes in allowed_classes list
         names = []
