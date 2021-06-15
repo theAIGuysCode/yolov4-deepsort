@@ -3,6 +3,7 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import time
 import tensorflow as tf
+import tensorflow.keras as keras
 physical_devices = tf.config.experimental.list_physical_devices('GPU')
 if len(physical_devices) > 0:
     tf.config.experimental.set_memory_growth(physical_devices[0], True)
@@ -70,8 +71,10 @@ def main(_argv):
         print(output_details)
     # otherwise load standard tensorflow saved model
     else:
-        saved_model_loaded = tf.saved_model.load(FLAGS.weights, tags=[tag_constants.SERVING])
-        infer = saved_model_loaded.signatures['serving_default']
+        # -- Dac: 15/06/2021
+        # saved_model_loaded = tf.saved_model.load(FLAGS.weights, tags=[tag_constants.SERVING])
+        # infer = saved_model_loaded.signatures['serving_default']
+        infer = keras.models.load_model(FLAGS.weights)
 
     # begin video capture
     try:
@@ -121,11 +124,19 @@ def main(_argv):
                 boxes, pred_conf = filter_boxes(pred[0], pred[1], score_threshold=0.25,
                                                 input_shape=tf.constant([input_size, input_size]))
         else:
+            # -- Dac: 15/6/2021
+            # batch_data = tf.constant(image_data)
+            # pred_bbox = infer(batch_data)
+            # for key, value in pred_bbox.items():
+            #     boxes = value[:, :, 0:4]
+            #     pred_conf = value[:, :, 4:]
+
             batch_data = tf.constant(image_data)
-            pred_bbox = infer(batch_data)
-            for key, value in pred_bbox.items():
-                boxes = value[:, :, 0:4]
-                pred_conf = value[:, :, 4:]
+            pred_bbox = infer.predict(batch_data)
+            for value in pred_bbox:
+                temp_value = np.expand_dims(value, axis=0)
+                boxes = temp_value[:, :, 0:4]
+                pred_conf = temp_value[:, :, 4:]
 
         boxes, scores, classes, valid_detections = tf.image.combined_non_max_suppression(
             boxes=tf.reshape(boxes, (tf.shape(boxes)[0], -1, 1, 4)),
