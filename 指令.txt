@@ -1,0 +1,7 @@
+python save_model.py --model yolov4 --input_size 608 --weights C:\Experiment\darknet-master\build\darknet\x64\fivetime\gan_600_100_2\yolov4_3classes_last.weights --output ./checkpoints/gan_600_100_2
+
+python save_model.py --model yolov4 --input_size 608 --weights .\data\yolov4_600_GAN50_best.weights --output ./checkpoints/gan_600_50_best
+
+
+
+python object_tracker.py --video C:\Experiment\darknet-master\build\darknet\x64\videos\SSA1.mp4 --output ./outputs/SSA1.avi --model yolov4 --size 608 --weights ./checkpoints/gan_600_100_2
