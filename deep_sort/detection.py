@@ -21,21 +21,18 @@ class Detection(object):
         Bounding box in format `(top left x, top left y, width, height)`.
     confidence : ndarray
         Detector confidence score.
-    class_name : ndarray
+    class_num : ndarray
         Detector class.
     feature : ndarray | NoneType
         A feature vector that describes the object contained in this image.
 
     """
 
-    def __init__(self, tlwh, confidence, class_name, feature):
+    def __init__(self, tlwh, confidence, class_num, feature):
         self.tlwh = np.asarray(tlwh, dtype=np.float)
         self.confidence = float(confidence)
-        self.class_name = class_name
+        self.class_num = class_num
         self.feature = np.asarray(feature, dtype=np.float32)
-
-    def get_class(self):
-        return self.class_name
 
     def to_tlbr(self):
         """Convert bounding box to format `(min x, min y, max x, max y)`, i.e.,
