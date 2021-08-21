@@ -23,6 +23,7 @@ from deep_sort import preprocessing, nn_matching
 from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
 from tools import generate_detections as gdet
+import collections
 flags.DEFINE_string('framework', 'tf', '(tf, tflite, trt')
 flags.DEFINE_string('weights', './checkpoints/yolov4-416',
                     'path to weights file')
@@ -37,6 +38,54 @@ flags.DEFINE_float('score', 0.50, 'score threshold')
 flags.DEFINE_boolean('dont_show', False, 'dont show video output')
 flags.DEFINE_boolean('info', False, 'show detailed info of tracked objects')
 flags.DEFINE_boolean('count', False, 'count objects being tracked on screen')
+
+
+def getColorList():
+    dict = collections.defaultdict(list)
+ 
+    # 白色
+    lower_white = np.array([0, 0, 221])
+    upper_white = np.array([180, 30, 255])
+    color_list = []
+    color_list.append(lower_white)
+    color_list.append(upper_white)
+    color_list.append([248, 248, 255])
+    dict['white'] = color_list
+
+ 
+    #蓝色
+    lower_blue = np.array([100, 43, 46])
+    upper_blue = np.array([124, 255, 255])
+    color_list = []
+    color_list.append(lower_blue)
+    color_list.append(upper_blue)
+    color_list.append([0, 0, 221])
+    dict['blue'] = color_list
+ 
+    return dict
+
+def get_color(frame):
+    hsv = cv2.cvtColor(frame,cv2.COLOR_BGR2HSV)
+    maxsum = -100
+    color = None
+    color_dict = getColorList()
+    for d in color_dict:
+        mask = cv2.inRange(hsv,color_dict[d][0],color_dict[d][1])
+        #binary = cv2.threshold(mask, 127, 255, cv2.THRESH_BINARY)[1]
+        #binary = cv2.dilate(binary,None,iterations=2)
+        #cnts, hiera = cv2.findContours(binary.copy(),cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+        s = sum(mask.flatten())
+        #for c in cnts:
+        #    sum+=cv2.contourArea(c)
+        if s > maxsum :
+            maxsum = s
+            color = d
+    if(color=='blue'):
+        for d in color_dict:
+            mask = cv2.inRange(hsv,color_dict[d][0],color_dict[d][1])
+            print(sum(mask.flatten()))
+
+    return color
 
 def main(_argv):
     # Definition of the parameters
@@ -90,10 +139,14 @@ def main(_argv):
         codec = cv2.VideoWriter_fourcc(*FLAGS.output_format)
         out = cv2.VideoWriter(FLAGS.output, codec, fps, (width, height))
 
+    color_dict = getColorList()
     frame_num = 0
+
     # while video is running
     while True:
         return_value, frame = vid.read()
+        pic = frame.copy()
+        cv2.imwrite("pic.png", pic)
         if return_value:
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             image = Image.fromarray(frame)
@@ -157,8 +210,9 @@ def main(_argv):
         class_names = utils.read_class_names(cfg.YOLO.CLASSES)
 
         # by default allow all classes in .names file
-        allowed_classes = list(class_names.values())
-        
+        #allowed_classes = list(class_names.values())
+        allowed_classes = ['person', 'sports ball']
+        # allowed_classes = ['sports ball']
         # custom allowed classes (uncomment line below to customize tracker for only people)
         #allowed_classes = ['person']
 
@@ -205,14 +259,25 @@ def main(_argv):
             if not track.is_confirmed() or track.time_since_update > 1:
                 continue 
             bbox = track.to_tlbr()
-            class_name = track.get_class()
-            
+            #class_name = track.get_class()
+            class_name = str(track.track_id)
+
         # draw bbox on screen
-            color = colors[int(track.track_id) % len(colors)]
-            color = [i * 255 for i in color]
-            cv2.rectangle(frame, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), color, 2)
-            cv2.rectangle(frame, (int(bbox[0]), int(bbox[1]-30)), (int(bbox[0])+(len(class_name)+len(str(track.track_id)))*17, int(bbox[1])), color, -1)
-            cv2.putText(frame, class_name + "-" + str(track.track_id),(int(bbox[0]), int(bbox[1]-10)),0, 0.75, (255,255,255),2)
+            #color = colors[int(track.track_id) % len(colors)]
+            #color = [i * 255 for i in color]
+            cv2.imwrite("p"+str(track.track_id)+".png", pic[int(max(0,min(bbox[1],bbox[3]))):int(max(bbox[1],bbox[3])), int(max(min(bbox[0],bbox[2]),0)):int(max(bbox[2],bbox[0]))])
+            color = get_color(pic[int(max(0,min(bbox[1],bbox[3]))):int(max(bbox[1],bbox[3])), int(max(min(bbox[0],bbox[2]),0)):int(max(bbox[2],bbox[0]))])
+            temp = []
+            for i in color_dict[color][2]:
+                temp.append(int(i))
+            if color=='blue':
+                print(track.track_id)
+            if(len(frame)*0.5<= abs(int(bbox[1]-bbox[3]))):
+                continue
+            cv2.rectangle(frame, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), temp, 2)
+            cv2.rectangle(frame, (int(bbox[0]), int(bbox[1]-5)), (int(bbox[0])+(len(class_name)+len(str(track.track_id)))*7, int(bbox[1])), temp, -1)
+            #cv2.putText(frame, class_name + "-" + str(track.track_id),(int(bbox[0]), int(bbox[1]-10)),0, 0.3, (255,255,255),2)
+            cv2.putText(frame, class_name,(int(bbox[0]), int(bbox[1]-10)),0, 0.3, (255,255,255),2)
 
         # if enable info flag then print details about each track
             if FLAGS.info:
