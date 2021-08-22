@@ -38,6 +38,6 @@ def predict_image(cap, api_key, url, idx):
         formatted_predictions.append(formatted_pred)
         classes.append(pred["class"])
 
-    print(formatted_predictions)
+    #print(formatted_predictions)
 
     return formatted_predictions, classes

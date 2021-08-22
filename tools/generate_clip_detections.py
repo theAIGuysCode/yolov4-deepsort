@@ -75,29 +75,34 @@ def extract_image_patch(image, bbox, patch_shape=None):
 
 class ImageEncoder(object):
 
-    def __init__(self, model, transform):
+    def __init__(self, model, transform, device):
 
         
         self.model = model
         self.transform = transform
+        self.device = device
 
     def __call__(self, data_x, batch_size=32):
-        out = np.empty([len(data_x), 512])
+        out = []
+
         for patch in range(len(data_x)):
-            img = self.transform(Image.fromarray(data_x[patch])).unsqueeze(0)
-            features = self.model.encode_image(img).cpu().numpy()
-            out[patch] = features[0]
-        print(out.shape)
-        return out
+            if self.device == "cpu":
+                img = self.transform(Image.fromarray(data_x[patch]))
+            else:
+                img = self.transform(Image.fromarray(data_x[patch])).cuda()
+            out.append(img)
+
+        features = self.model.encode_image(torch.stack(out)).cpu().numpy()
+        return features
 
 
-def create_box_encoder(model, transform, batch_size=32):
-    image_encoder = ImageEncoder(model, transform)
+def create_box_encoder(model, transform, batch_size=32, device="cpu"):
+    image_encoder = ImageEncoder(model, transform, device)
 
     def encoder(image, boxes):
         image_patches = []
         for box in boxes:
-            print("extracting box {} from image {}".format(box, image.shape))
+            #print("extracting box {} from image {}".format(box, image.shape))
             patch = extract_image_patch(image, box)
             if patch is None:
                 print("WARNING: Failed to extract image patch: %s." % str(box))

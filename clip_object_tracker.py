@@ -12,10 +12,10 @@ import numpy as np
 
 from models.experimental import attempt_load
 from utils.datasets import LoadStreams, LoadImages
-from utils.general import check_img_size, non_max_suppression, apply_classifier, scale_coords, xyxy2xywh, \
+from utils.general import xyxy2xywh, \
     strip_optimizer, set_logging, increment_path
 from utils.plots import plot_one_box
-from utils.torch_utils import select_device, load_classifier, time_synchronized
+from utils.torch_utils import select_device, time_synchronized
 from utils.roboflow import predict_image
 
 # deep sort imports
@@ -24,6 +24,52 @@ from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
 from tools import generate_clip_detections as gdet
 
+
+def update_tracks(tracker, frame_count, save_txt, txt_path, save_img, view_img, colors, im0, gn):
+    if len(tracker.tracks):
+        print("[Tracks]")
+
+    for track in tracker.tracks:
+        if not track.is_confirmed() or track.time_since_update > 1:
+            continue
+        xyxy = track.to_tlbr()
+        class_num = track.class_num
+        bbox = xyxy
+
+        if opt.info:
+            print("Tracker ID: {}, Class: {}, BBox Coords (xmin, ymin, xmax, ymax): {}".format(
+                str(track.track_id), class_num, (int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3]))))
+
+        if save_txt:  # Write to file
+            xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)
+                              ) / gn).view(-1).tolist()  # normalized xywh
+
+            with open(txt_path + '.txt', 'a') as f:
+                f.write('frame: {}; track: {}; class: {}; bbox: {};\n'.format(frame_count, track.track_id, class_num,
+                                                                              *xywh))
+
+        if save_img or view_img:  # Add bbox to image
+            label = f'{class_num} {track.track_id}'
+            plot_one_box(xyxy, im0, label=label,
+                         color=colors[len(class_num)], line_thickness=3)
+
+def save_image(save_img, dataset, save_path, im0, vid_path, vid_writer, vid_cap):
+    if save_img:
+        if dataset.mode == 'image':
+            cv2.imwrite(save_path, im0)
+        else:  # 'video'
+            if vid_path != save_path:  # new video
+                vid_path = save_path
+                if isinstance(vid_writer, cv2.VideoWriter):
+                    vid_writer.release()  # release previous video writer
+
+                fourcc = 'mp4v'  # output video codec
+                fps = vid_cap.get(cv2.CAP_PROP_FPS)
+                w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                vid_writer = cv2.VideoWriter(
+                    save_path, cv2.VideoWriter_fourcc(*fourcc), fps, (w, h))
+            vid_writer.write(im0)
 
 def detect(save_img=False):
     nms_max_overlap = opt.nms_max_overlap
@@ -34,7 +80,7 @@ def detect(save_img=False):
     model_filename = "ViT-B/32"
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model, transform = clip.load(model_filename, device=device)
-    encoder = gdet.create_box_encoder(model, transform, batch_size=1)
+    encoder = gdet.create_box_encoder(model, transform, batch_size=1, device=device)
     # calculate cosine distance metric
     metric = nn_matching.NearestNeighborDistanceMetric(
         "cosine", max_cosine_distance, nn_budget)
@@ -56,19 +102,6 @@ def detect(save_img=False):
     device = select_device(opt.device)
     half = device.type != 'cpu'  # half precision only supported on CUDA
 
-    # Load model
-    model = attempt_load(weights, map_location=device)  # load FP32 model
-    imgsz = check_img_size(imgsz, s=model.stride.max())  # check img_size
-    if half:
-        model.half()  # to FP16
-
-    # Second-stage classifier
-    classify = False
-    if classify:
-        modelc = load_classifier(name='resnet101', n=2)  # initialize
-        modelc.load_state_dict(torch.load(
-            'weights/resnet101.pt', map_location=device)['model']).to(device).eval()
-
     # Set Dataloader
     vid_path, vid_writer = None, None
     if webcam:
@@ -79,18 +112,13 @@ def detect(save_img=False):
         save_img = True
         dataset = LoadImages(source, img_size=imgsz)
 
-    # Get names and colors
-    names = model.module.names if hasattr(model, 'module') else model.names
-    colors = [[random.randint(0, 255) for _ in range(3)] for _ in names]
+    # colors
+    colors = [[random.randint(0, 255) for _ in range(3)] for _ in range(80)]
 
-    # Run inference
-    t0 = time.time()
-    img = torch.zeros((1, 3, imgsz, imgsz), device=device)  # init img
-    # run once
-    _ = model(img.half() if half else img) if device.type != 'cpu' else None
 
     frame_count = 0
     for path, img, im0s, vid_cap in dataset:
+
         # Roboflow Inference
         t1 = time_synchronized()
         pred, classes = predict_image(vid_cap, opt.api_key, opt.url, frame_count)
@@ -102,23 +130,7 @@ def detect(save_img=False):
         if img.ndimension() == 3:
             img = img.unsqueeze(0)
 
-
-        '''
-
-        # Inference
-        
-        pred = model(img, augment=opt.augment)[0]
-
-        
-        # Apply NMS
-        pred = non_max_suppression(
-            pred, opt.conf_thres, opt.iou_thres, classes=opt.classes, agnostic=opt.agnostic_nms)
-        print(pred)'''
         t2 = time_synchronized()
-
-        # Apply Classifier
-        if classify:
-            pred = apply_classifier(pred, modelc, img, im0s)
 
         # Process detections
         for i, det in enumerate(pred):  # detections per image
@@ -132,27 +144,23 @@ def detect(save_img=False):
             save_path = str(save_dir / p.name)  # img.jpg
             txt_path = str(save_dir / 'labels' / p.stem) + \
                 ('' if dataset.mode == 'image' else f'_{frame}')  # img.txt
-            #s += '%gx%g ' % img.shape[2:]  # print string
+
             # normalization gain whwh
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]
             if len(det):
-                # Rescale boxes from img_size to im0 size
-                #det[:, :4] = scale_coords(
-                #    img.shape[2:], det[:, :4], im0.shape).round()
 
+                print("\n[Detections]")
                 # Print results
-                for c in det[:, -1].unique():
-                    n = (det[:, -1] == c).sum()  # detections per class
-                    s += f'{n} {names[int(c)]}s, '  # add to string
+                clss = np.array(classes)
+                for c in np.unique(clss):
+                    n = (clss == c).sum()  # detections per class
+                    s += f'{n} {c}, '  # add to string
 
-                # Transform bboxes from tlbr to tlwh
+                print(s)
 
-                print(det[:, :4][0])
                 trans_bboxes = det[:, :4].clone()
-                #trans_bboxes[:, 2:] -= trans_bboxes[:, :2]
                 bboxes = trans_bboxes[:, :4].cpu()
                 confs = det[:, 4]
-                class_nums = det[:, -1]
 
                 # encode yolo detections and feed to tracker
                 features = encoder(im0, bboxes)
@@ -172,32 +180,10 @@ def detect(save_img=False):
                 tracker.update(detections)
 
                 # update tracks
-                for track in tracker.tracks:
-                    if not track.is_confirmed() or track.time_since_update > 1:
-                        continue
-                    xyxy = track.to_tlbr()
-                    class_num = track.class_num
-
-                    if opt.info:
-                        print("Tracker ID: {}, Class: {}, BBox Coords (xmin, ymin, xmax, ymax): {}".format(
-                            str(track.track_id), class_num, (int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3]))))
-
-                    if save_txt:  # Write to file
-                        xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)
-                                          ) / gn).view(-1).tolist()  # normalized xywh
-                        # label format
-                        line = (class_num, *xywh,
-                                conf) if opt.save_conf else (class_num, *xywh)
-                        with open(txt_path + '.txt', 'a') as f:
-                            f.write(('%g ' * len(line)).rstrip() % line + '\n')
-
-                    if save_img or view_img:  # Add bbox to image
-                        label = f'{class_num} {track.track_id}'
-                        plot_one_box(xyxy, im0, label=label,
-                                     color=colors[len(class_num)], line_thickness=3)
+                update_tracks(tracker, frame_count, save_txt, txt_path, save_img, view_img, colors, im0, gn)
 
             # Print time (inference + NMS)
-            print(f'{s}Done. ({t2 - t1:.3f}s)')
+            print(f'Done. ({t2 - t1:.3f}s)')
 
             # Stream results
             if view_img:
@@ -206,22 +192,7 @@ def detect(save_img=False):
                     raise StopIteration
 
             # Save results (image with detections)
-            if save_img:
-                if dataset.mode == 'image':
-                    cv2.imwrite(save_path, im0)
-                else:  # 'video'
-                    if vid_path != save_path:  # new video
-                        vid_path = save_path
-                        if isinstance(vid_writer, cv2.VideoWriter):
-                            vid_writer.release()  # release previous video writer
-
-                        fourcc = 'mp4v'  # output video codec
-                        fps = vid_cap.get(cv2.CAP_PROP_FPS)
-                        w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                        h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-                        vid_writer = cv2.VideoWriter(
-                            save_path, cv2.VideoWriter_fourcc(*fourcc), fps, (w, h))
-                    vid_writer.write(im0)
+            save_image(save_img, dataset, save_path, im0, vid_path, vid_writer, vid_cap)
 
             frame_count = frame_count+1
 
