@@ -17,8 +17,8 @@ Upload, annotate, and train your model on Roboflow with [Roboflow Train](https:/
 Clone repositories
 
 ```
-git clone https://github.com/roboflow-ai/roboflow-object-tracking
-cd roboflow-object-tracking
+git clone https://github.com/roboflow-ai/zero-shot-object-tracking
+cd zero-shot-object-tracking
 git clone https://github.com/openai/CLIP.git CLIP-repo
 cp -r ./CLIP-repo/clip ./clip
 ```
@@ -40,7 +40,7 @@ pip install opencv pycocotools tensorflow
 Run
 
 ```bash
-python clip_object_tracker.py --source data/video/cards.mp4 --url https://detect.roboflow.com/playing-cards-ow27d/1 --api_key ROBOFLO_API_KEY
+python clip_object_tracker.py --source data/video/cards.mp4 --url https://detect.roboflow.com/playing-cards-ow27d/1 --api_key ROBOFLOW_API_KEY
 ```
 
 (by default, output will be in runs/detect/exp[num])
