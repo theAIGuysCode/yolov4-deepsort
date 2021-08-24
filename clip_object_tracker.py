@@ -25,7 +25,7 @@ from deep_sort.tracker import Tracker
 from tools import generate_clip_detections as gdet
 
 
-def update_tracks(tracker, frame_count, save_txt, txt_path, save_img, view_img, colors, im0, gn):
+def update_tracks(tracker, frame_count, save_txt, txt_path, save_img, view_img, im0, gn):
     if len(tracker.tracks):
         print("[Tracks]")
 
@@ -51,8 +51,28 @@ def update_tracks(tracker, frame_count, save_txt, txt_path, save_img, view_img, 
         if save_img or view_img:  # Add bbox to image
             label = f'{class_num} {track.track_id}'
             plot_one_box(xyxy, im0, label=label,
-                         color=colors[len(class_num)], line_thickness=3)
+                         color=get_color_for(class_num), line_thickness=3)
 
+def get_color_for(class_num):
+    colors = [
+        "#4892EA",
+        "#00EEC3",
+        "#FE4EF0",
+        "#F4004E",
+        "#FA7200",
+        "#EEEE17",
+        "#90FF00",
+        "#78C1D2",
+        "#8C29FF"
+    ]
+
+    num = hash(class_num) # may actually be a number or a string
+    hex = colors[num%len(colors)]
+
+    # adapted from https://stackoverflow.com/questions/29643352/converting-hex-to-rgb-value-in-python
+    rgb = tuple(int(hex.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
+
+    return rgb
 
 def detect(save_img=False):
 
@@ -97,10 +117,6 @@ def detect(save_img=False):
     else:
         save_img = True
         dataset = LoadImages(source, img_size=imgsz)
-
-    # colors
-    colors = [[random.randint(0, 255) for _ in range(3)] for _ in range(80)]
-
 
     frame_count = 0
     for path, img, im0s, vid_cap in dataset:
@@ -168,7 +184,7 @@ def detect(save_img=False):
                 tracker.update(detections)
 
                 # update tracks
-                update_tracks(tracker, frame_count, save_txt, txt_path, save_img, view_img, colors, im0, gn)
+                update_tracks(tracker, frame_count, save_txt, txt_path, save_img, view_img, im0, gn)
 
             # Print time (inference + NMS)
             print(f'Done. ({t2 - t1:.3f}s)')
