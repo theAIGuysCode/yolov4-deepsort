@@ -6,7 +6,7 @@ from PIL import Image
 import numpy as np
 
 
-def predict_image(image, api_key, url, confidence, idx):
+def predict_image(image, api_key, url, confidence, overlap, idx):
     retval, buffer = cv2.imencode('.jpg', image)
     img_str = base64.b64encode(buffer)
     img_str = img_str.decode("ascii")
@@ -18,6 +18,8 @@ def predict_image(image, api_key, url, confidence, idx):
         api_key,
         "&confidence=",
         str(confidence),
+        "&overlap=",
+        str(overlap),
         "&name=",
         str(idx),
         ".jpg"

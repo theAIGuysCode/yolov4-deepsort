@@ -49,9 +49,9 @@ def update_tracks(tracker, frame_count, save_txt, txt_path, save_img, view_img, 
                                                                               *xywh))
 
         if save_img or view_img:  # Add bbox to image
-            label = f'{class_num} {track.track_id}'
+            label = f'{class_num} #{track.track_id}'
             plot_one_box(xyxy, im0, label=label,
-                         color=get_color_for(class_num), line_thickness=3)
+                         color=get_color_for(label), line_thickness=opt.thickness)
 
 def get_color_for(class_num):
     colors = [
@@ -124,7 +124,7 @@ def detect(save_img=False):
         # Roboflow Inference
         t1 = time_synchronized()
         p, s, im0, frame = path, '', im0s, getattr(dataset, 'frame', 0)
-        pred, classes = predict_image(im0, opt.api_key, opt.url, opt.confidence, frame_count)
+        pred, classes = predict_image(im0, opt.api_key, opt.url, opt.confidence, opt.overlap, frame_count)
         pred = [torch.tensor(pred)]
 
         img = torch.from_numpy(img).to(device)
@@ -232,9 +232,11 @@ if __name__ == '__main__':
     parser.add_argument('--img-size', type=int, default=640,
                         help='inference size (pixels)')
     parser.add_argument('--confidence', type=float,
-                        default=0.25, help='object confidence threshold')
+                        default=0.40, help='object confidence threshold')
     parser.add_argument('--overlap', type=float,
-                        default=0.45, help='IOU threshold for NMS')
+                        default=0.30, help='IOU threshold for NMS')
+    parser.add_argument('--thickness', type=int,
+                        default=3, help='Thickness of the bounding box strokes')
     parser.add_argument('--device', default='',
                         help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--view-img', action='store_true',
