@@ -18,7 +18,8 @@ Clone repositories
 git clone https://github.com/roboflow-ai/zero-shot-object-tracking
 cd zero-shot-object-tracking
 git clone https://github.com/openai/CLIP.git CLIP-repo
-cp -r ./CLIP-repo/clip ./clip
+cp -r ./CLIP-repo/clip ./clip # Unix based
+robocopy CLIP-repo/clip clip\ # Windows
 ```
 
 Install requirements (python 3.7+)

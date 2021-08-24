@@ -4,13 +4,9 @@ import errno
 import argparse
 import numpy as np
 import cv2
-import tensorflow.compat.v1 as tf
 import torch
 from PIL import Image
 
-physical_devices = tf.config.experimental.list_physical_devices('GPU')
-if len(physical_devices) > 0:
-    tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
 def _run_in_batches(f, data_dict, out, batch_size):
     data_len = len(out)
