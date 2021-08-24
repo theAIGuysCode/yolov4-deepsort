@@ -27,7 +27,7 @@ from tools import generate_clip_detections as gdet
 
 def update_tracks(tracker, frame_count, save_txt, txt_path, save_img, view_img, im0, gn):
     if len(tracker.tracks):
-        print("[Tracks]")
+        print("[Tracks]", len(tracker.tracks))
 
     for track in tracker.tracks:
         if not track.is_confirmed() or track.time_since_update > 1:
@@ -124,7 +124,7 @@ def detect(save_img=False):
         # Roboflow Inference
         t1 = time_synchronized()
         p, s, im0, frame = path, '', im0s, getattr(dataset, 'frame', 0)
-        pred, classes = predict_image(im0, opt.api_key, opt.url, frame_count)
+        pred, classes = predict_image(im0, opt.api_key, opt.url, opt.confidence, frame_count)
         pred = [torch.tensor(pred)]
 
         img = torch.from_numpy(img).to(device)
@@ -231,9 +231,9 @@ if __name__ == '__main__':
                         default='data/images', help='source')
     parser.add_argument('--img-size', type=int, default=640,
                         help='inference size (pixels)')
-    parser.add_argument('--conf-thres', type=float,
+    parser.add_argument('--confidence', type=float,
                         default=0.25, help='object confidence threshold')
-    parser.add_argument('--iou-thres', type=float,
+    parser.add_argument('--overlap', type=float,
                         default=0.45, help='IOU threshold for NMS')
     parser.add_argument('--device', default='',
                         help='cuda device, i.e. 0 or 0,1,2,3 or cpu')

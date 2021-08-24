@@ -6,7 +6,7 @@ from PIL import Image
 import numpy as np
 
 
-def predict_image(image, api_key, url, idx):
+def predict_image(image, api_key, url, confidence, idx):
     retval, buffer = cv2.imencode('.jpg', image)
     img_str = base64.b64encode(buffer)
     img_str = img_str.decode("ascii")
@@ -16,6 +16,8 @@ def predict_image(image, api_key, url, idx):
         url,
         "?api_key=",
         api_key,
+        "&confidence=",
+        str(confidence),
         "&name=",
         str(idx),
         ".jpg"
