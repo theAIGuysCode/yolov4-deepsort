@@ -2,7 +2,7 @@
 
 Object tracking using Roboflow Inference API and zeroshot CLIP Deep SORT. [More on CLIP](https://blog.roboflow.com/how-to-use-openai-clip/)
 
-![Tracking Fish](example/video/fish.mp4?raw=True)
+https://user-images.githubusercontent.com/870796/130702873-378c5af9-34ce-48dc-b874-667a2c69dfd2.mp4
 
 Example object tracking courtesy of the [Roboflow Universe public Aquarium model and dataset](https://universe.roboflow.com/brad-dwyer/aquarium-combined). You can adapt this to your own dataset on Roboflow or any pre-trained model from [Roboflow Universe](https://universe.roboflow.com).
 
