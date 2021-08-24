@@ -3,7 +3,7 @@
 Object tracking using Roboflow Inference API and Zero-Shot (CLIP) Deep SORT. Read more in our
 [Zero-Shot Object Tracking announcement post](https://blog.roboflow.com/zero-shot-object-tracking/).
 
-https://user-images.githubusercontent.com/870796/130702873-378c5af9-34ce-48dc-b874-667a2c69dfd2.mp4
+![Example fish tracking](https://user-images.githubusercontent.com/870796/130703648-8af62801-d66c-41f5-80ae-889301ae9b44.gif)
 
 Example object tracking courtesy of the [Roboflow Universe public Aquarium model and dataset](https://universe.roboflow.com/brad-dwyer/aquarium-combined). You can adapt this to your own dataset on Roboflow or any pre-trained model from [Roboflow Universe](https://universe.roboflow.com).
 
