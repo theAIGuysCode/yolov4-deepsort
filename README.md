@@ -2,7 +2,23 @@
 
 Object tracking using Roboflow Inference API and zeroshot CLIP Deep SORT. [More on CLIP](https://blog.roboflow.com/how-to-use-openai-clip/)
 
-Example object tracking courtesy of the [Roboflow Universe public playing cards model and dataset](https://universe.roboflow.com/augmented-startups/playing-cards-ow27d). You can adapt this to your own dataset on Roboflow.
+![Tracking Fish](example/video/fish.mp4)
+
+Example object tracking courtesy of the [Roboflow Universe public Aquarium model and dataset](https://universe.roboflow.com/brad-dwyer/aquarium-combined). You can adapt this to your own dataset on Roboflow or any pre-trained model from [Roboflow Universe](https://universe.roboflow.com).
+
+# Overview
+
+Object tracking involves following individual objects of interest across frames. It
+combines the output of an [object detection](https://blog.roboflow.com/object-detection) model
+with a secondary algorithm to determine which detections are identifying "the same"
+object over time.
+
+Previously, this required training a special classification model to differentiate
+the instances of each different class. In this repository, we have used
+[OpenAI's CLIP zero-shot image classifier](https://blog.roboflow.com/clip-model-eli5-beginner-guide/)
+to create a universal object tracking repository. All you need is a trained object
+detection model and CLIP handles the instance identification for the object tracking
+algorithm.
 
 # Getting Started
 
