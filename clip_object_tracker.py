@@ -53,23 +53,6 @@ def update_tracks(tracker, frame_count, save_txt, txt_path, save_img, view_img, 
             plot_one_box(xyxy, im0, label=label,
                          color=colors[len(class_num)], line_thickness=3)
 
-def save_image(save_img, dataset, save_path, im0, vid_path, vid_writer, vid_cap):
-    if save_img:
-        if dataset.mode == 'image':
-            cv2.imwrite(save_path, im0)
-        else:  # 'video'
-            if vid_path != save_path:  # new video
-                vid_path = save_path
-                if isinstance(vid_writer, cv2.VideoWriter):
-                    vid_writer.release()  # release previous video writer
-
-                fourcc = 'mp4v'  # output video codec
-                fps = vid_cap.get(cv2.CAP_PROP_FPS)
-                w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-                vid_writer = cv2.VideoWriter(
-                    save_path, cv2.VideoWriter_fourcc(*fourcc), fps, (w, h))
-            vid_writer.write(im0)
 
 def detect(save_img=False):
     nms_max_overlap = opt.nms_max_overlap
@@ -192,7 +175,22 @@ def detect(save_img=False):
                     raise StopIteration
 
             # Save results (image with detections)
-            save_image(save_img, dataset, save_path, im0, vid_path, vid_writer, vid_cap)
+            if save_img:
+                if dataset.mode == 'image':
+                    cv2.imwrite(save_path, im0)
+                else:  # 'video'
+                    if vid_path != save_path:  # new video
+                        vid_path = save_path
+                        if isinstance(vid_writer, cv2.VideoWriter):
+                            vid_writer.release()  # release previous video writer
+
+                        fourcc = 'mp4v'  # output video codec
+                        fps = vid_cap.get(cv2.CAP_PROP_FPS)
+                        w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                        h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                        vid_writer = cv2.VideoWriter(
+                            save_path, cv2.VideoWriter_fourcc(*fourcc), fps, (w, h))
+                    vid_writer.write(im0)
 
             frame_count = frame_count+1
 
