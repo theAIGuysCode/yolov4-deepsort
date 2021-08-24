@@ -34,6 +34,11 @@ def predict_image(image, api_key, url, idx):
 
     for pred in predictions:
         formatted_pred = [pred["x"], pred["y"], pred["width"], pred["height"], pred["confidence"]]
+
+        # convert to top-left x/y from center
+        formatted_pred[0] -= formatted_pred[2]/2
+        formatted_pred[1] -= formatted_pred[3]/2
+
         formatted_predictions.append(formatted_pred)
         classes.append(pred["class"])
 
