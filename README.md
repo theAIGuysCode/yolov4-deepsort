@@ -1,6 +1,6 @@
 # Roboflow Object Tracking Example
 
-Object tracking using Roboflow Inference API and zeroshot CLIP Deep SORT. [More on CLIP](https://blog.roboflow.com/how-to-use-openai-clip/)
+Object tracking using Roboflow Inference API and Zero-Shot (CLIP) Deep SORT. [More on CLIP](https://blog.roboflow.com/how-to-use-openai-clip/)
 
 https://user-images.githubusercontent.com/870796/130702873-378c5af9-34ce-48dc-b874-667a2c69dfd2.mp4
 
