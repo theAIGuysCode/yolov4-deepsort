@@ -55,6 +55,9 @@ def update_tracks(tracker, frame_count, save_txt, txt_path, save_img, view_img, 
 
 
 def detect(save_img=False):
+
+    t0 = time_synchronized()
+
     nms_max_overlap = opt.nms_max_overlap
     max_cosine_distance = opt.max_cosine_distance
     nn_budget = opt.nn_budget
