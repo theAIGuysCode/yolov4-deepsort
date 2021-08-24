@@ -6,8 +6,7 @@ from PIL import Image
 import numpy as np
 
 
-def predict_image(cap, api_key, url, idx):
-    retval, image = cap.read()
+def predict_image(image, api_key, url, idx):
     retval, buffer = cv2.imencode('.jpg', image)
     img_str = base64.b64encode(buffer)
     img_str = img_str.decode("ascii")

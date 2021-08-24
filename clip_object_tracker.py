@@ -107,7 +107,8 @@ def detect(save_img=False):
 
         # Roboflow Inference
         t1 = time_synchronized()
-        pred, classes = predict_image(vid_cap, opt.api_key, opt.url, frame_count)
+        p, s, im0, frame = path, '', im0s, getattr(dataset, 'frame', 0)
+        pred, classes = predict_image(im0, opt.api_key, opt.url, frame_count)
         pred = [torch.tensor(pred)]
 
         img = torch.from_numpy(img).to(device)
@@ -120,11 +121,12 @@ def detect(save_img=False):
 
         # Process detections
         for i, det in enumerate(pred):  # detections per image
-            if webcam:  # batch_size >= 1
+            #moved up to roboflow inference
+            """if webcam:  # batch_size >= 1
                 p, s, im0, frame = path[i], '%g: ' % i, im0s[i].copy(
                 ), dataset.count
             else:
-                p, s, im0, frame = path, '', im0s, getattr(dataset, 'frame', 0)
+                p, s, im0, frame = path, '', im0s, getattr(dataset, 'frame', 0)"""
 
             p = Path(p)  # to Path
             save_path = str(save_dir / p.name)  # img.jpg
