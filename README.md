@@ -24,7 +24,11 @@ algorithm.
 
 ## Training your model
 
-Upload, annotate, and train your model on Roboflow with [Roboflow Train](https://docs.roboflow.com/train). Your model will be hosted on an inference URL.
+Upload, annotate, and train your model on Roboflow with [Roboflow Train](https://docs.roboflow.com/train).
+Your model will be hosted on an inference URL.
+
+In the future we will update this repository to support using other custom models
+(like YOLOv5) as the object detector (PRs welcome).
 
 ## Performing Object Tracking
 
