@@ -24,6 +24,8 @@ from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
 from tools import generate_clip_detections as gdet
 
+from utils.yolov5 import Yolov5Engine
+
 
 def update_tracks(tracker, frame_count, save_txt, txt_path, save_img, view_img, im0, gn):
     if len(tracker.tracks):
@@ -85,11 +87,17 @@ def detect(save_img=False):
     # initialize deep sort
     model_filename = "ViT-B/32"
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    half = device != "cpu"
     model, transform = clip.load(model_filename, device=device)
     encoder = gdet.create_box_encoder(model, transform, batch_size=1, device=device)
     # calculate cosine distance metric
     metric = nn_matching.NearestNeighborDistanceMetric(
         "cosine", max_cosine_distance, nn_budget)
+    
+    # load yolov5 model here
+    classes = []  # classes list for yolov5
+    if opt.detection_engine == "yolov5":
+        yolov5_engine = Yolov5Engine("models/yolov5s.pt", device, classes, opt.confidence, opt.overlap, opt.agnostic_nms, opt.augment, half)
     # initialize tracker
     tracker = Tracker(metric)
 
@@ -119,19 +127,28 @@ def detect(save_img=False):
         dataset = LoadImages(source, img_size=imgsz)
 
     frame_count = 0
+    img = torch.zeros((1, 3, imgsz, imgsz), device=device)  # init img
+    _ = yolov5_engine.infer(img.half() if half else img) if device.type != 'cpu' else None  # run once
     for path, img, im0s, vid_cap in dataset:
-
-        # Roboflow Inference
-        t1 = time_synchronized()
-        p, s, im0, frame = path, '', im0s, getattr(dataset, 'frame', 0)
-        pred, classes = predict_image(im0, opt.api_key, opt.url, opt.confidence, opt.overlap, frame_count)
-        pred = [torch.tensor(pred)]
 
         img = torch.from_numpy(img).to(device)
         img = img.half() if half else img.float()  # uint8 to fp16/32
         img /= 255.0  # 0 - 255 to 0.0 - 1.0
         if img.ndimension() == 3:
             img = img.unsqueeze(0)
+
+        # Roboflow Inference
+        t1 = time_synchronized()
+        p, s, im0, frame = path, '', im0s, getattr(dataset, 'frame', 0)
+
+        # choose between prediction engines (yolov5 and roboflow)
+        if (opt.detection_engine == "roboflow"):
+            pred, classes = predict_image(im0, opt.api_key, opt.url, opt.confidence, opt.overlap, frame_count)
+            pred = [torch.tensor(pred)]
+        else:
+            print("yolov5 inference")
+            pred = yolov5_engine.infer(img)
+            print(pred)
 
         t2 = time_synchronized()
 
@@ -271,6 +288,7 @@ if __name__ == '__main__':
                         help='Roboflow Model URL.')
     parser.add_argument('--info', action='store_true',
                         help='Print debugging info.')
+    parser.add_argument("--detection-engine", default="roboflow", help="Which engine you want to use for object detection (yolov5, yolov4, roboflow).")
     opt = parser.parse_args()
     print(opt)
 

@@ -1,17 +1,22 @@
 from models.experimental import attempt_load
-from general import non_max_suppression
+from utils.general import non_max_suppression
 
 class Yolov5Engine:
-    def __init__(self, weights, device, half, classes, conf_thres, iou_thres, agnostic_nms):
+    def __init__(self, weights, device, classes, conf_thres, iou_thres, agnostic_nms, augment, half):
         self.model = attempt_load(weights, map_location=device)
-        self.model.half()
+        if half:
+            self.model.half()
         self.classes = classes
         self.conf_thres = conf_thres
         self.iou_thres = iou_thres
+        self.augment = augment
+        self.agnostic_nms = agnostic_nms
 
-    def infer(self, img, augment):
-        pred = self.model(img, augment=augment)[0]
+    def infer(self, img):
+        pred = self.model(img, augment=self.augment)[0]
+        print(pred)
         pred = self.nms(pred)
+        print("predicted")
         return pred
 
     def nms(self, pred):
