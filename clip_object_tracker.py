@@ -26,6 +26,8 @@ from tools import generate_clip_detections as gdet
 
 from utils.yolov5 import Yolov5Engine
 
+classes = []
+
 
 def update_tracks(tracker, frame_count, save_txt, txt_path, save_img, view_img, im0, gn):
     if len(tracker.tracks):
@@ -95,9 +97,9 @@ def detect(save_img=False):
         "cosine", max_cosine_distance, nn_budget)
     
     # load yolov5 model here
-    classes = []  # classes list for yolov5
     if opt.detection_engine == "yolov5":
-        yolov5_engine = Yolov5Engine("models/yolov5s.pt", device, classes, opt.confidence, opt.overlap, opt.agnostic_nms, opt.augment, half)
+        yolov5_engine = Yolov5Engine("models/yolov5s.pt", device, opt.classes, opt.confidence, opt.overlap, opt.agnostic_nms, opt.augment, half)
+        names = yolov5_engine.get_names()
     # initialize tracker
     tracker = Tracker(metric)
 
@@ -171,17 +173,34 @@ def detect(save_img=False):
             if len(det):
 
                 print("\n[Detections]")
-                # Print results
-                clss = np.array(classes)
-                for c in np.unique(clss):
-                    n = (clss == c).sum()  # detections per class
-                    s += f'{n} {c}, '  # add to string
+                if opt.detection_engine == "roboflow":
+                    # Print results
+                    clss = np.array(classes)
+                    for c in np.unique(clss):
+                        n = (clss == c).sum()  # detections per class
+                        s += f'{n} {c}, '  # add to string
 
-                print(s)
+                else:
+                    # Rescale boxes from img_size to im0 size
+                    det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
 
-                trans_bboxes = det[:, :4].clone()
-                bboxes = trans_bboxes[:, :4].cpu()
-                confs = det[:, 4]
+                    # Print results
+                    for c in det[:, -1].unique():
+                        n = (det[:, -1] == c).sum()  # detections per class
+                        s += f'{n} {names[int(c)]}s, '  # add to string
+
+                    # Transform bboxes from tlbr to tlwh
+                    trans_bboxes = det[:, :4].clone()
+                    trans_bboxes[:, 2:] -= trans_bboxes[:, :2]
+                    bboxes = trans_bboxes[:, :4]
+                    confs = det[:, 4]
+                    class_nums = det[:, -1]
+
+                    print(s)
+
+                    trans_bboxes = det[:, :4].clone()
+                    bboxes = trans_bboxes[:, :4].cpu()
+                    confs = det[:, 4]
 
                 # encode yolo detections and feed to tracker
                 features = encoder(im0, bboxes)

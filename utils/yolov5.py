@@ -22,3 +22,6 @@ class Yolov5Engine:
     def nms(self, pred):
         out = non_max_suppression(pred, self.conf_thres, self.iou_thres, classes=self.classes, agnostic=self.agnostic_nms)
         return out
+
+    def get_names(self):
+        return self.model.module.names if hasattr(self.model, 'module') else self.model.names
