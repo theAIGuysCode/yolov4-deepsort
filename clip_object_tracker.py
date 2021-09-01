@@ -100,7 +100,7 @@ def detect(save_img=False):
     
     # load yolov5 model here
     if opt.detection_engine == "yolov5":
-        yolov5_engine = Yolov5Engine("models/yolov5s.pt", device, opt.classes, opt.confidence, opt.overlap, opt.agnostic_nms, opt.augment, half)
+        yolov5_engine = Yolov5Engine(opt.weights, device, opt.classes, opt.confidence, opt.overlap, opt.agnostic_nms, opt.augment, half)
         global names
         names = yolov5_engine.get_names()
     # initialize tracker
