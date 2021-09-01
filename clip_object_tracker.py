@@ -13,7 +13,7 @@ import numpy as np
 from models.experimental import attempt_load
 from utils.datasets import LoadStreams, LoadImages
 from utils.general import xyxy2xywh, \
-    strip_optimizer, set_logging, increment_path
+    strip_optimizer, set_logging, increment_path, scale_coords
 from utils.plots import plot_one_box
 from utils.torch_utils import select_device, time_synchronized
 from utils.roboflow import predict_image
@@ -28,6 +28,8 @@ from utils.yolov5 import Yolov5Engine
 
 classes = []
 
+names = []
+
 
 def update_tracks(tracker, frame_count, save_txt, txt_path, save_img, view_img, im0, gn):
     if len(tracker.tracks):
@@ -39,10 +41,10 @@ def update_tracks(tracker, frame_count, save_txt, txt_path, save_img, view_img, 
         xyxy = track.to_tlbr()
         class_num = track.class_num
         bbox = xyxy
-
+        class_name = names[int(class_num)] if opt.detection_engine != "roboflow" else class_num
         if opt.info:
             print("Tracker ID: {}, Class: {}, BBox Coords (xmin, ymin, xmax, ymax): {}".format(
-                str(track.track_id), class_num, (int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3]))))
+                str(track.track_id), class_name, (int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3]))))
 
         if save_txt:  # Write to file
             xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)
@@ -53,7 +55,7 @@ def update_tracks(tracker, frame_count, save_txt, txt_path, save_img, view_img, 
                                                                               *xywh))
 
         if save_img or view_img:  # Add bbox to image
-            label = f'{class_num} #{track.track_id}'
+            label = f'{class_name} #{track.track_id}'
             plot_one_box(xyxy, im0, label=label,
                          color=get_color_for(label), line_thickness=opt.thickness)
 
@@ -99,6 +101,7 @@ def detect(save_img=False):
     # load yolov5 model here
     if opt.detection_engine == "yolov5":
         yolov5_engine = Yolov5Engine("models/yolov5s.pt", device, opt.classes, opt.confidence, opt.overlap, opt.agnostic_nms, opt.augment, half)
+        global names
         names = yolov5_engine.get_names()
     # initialize tracker
     tracker = Tracker(metric)
@@ -150,7 +153,6 @@ def detect(save_img=False):
         else:
             print("yolov5 inference")
             pred = yolov5_engine.infer(img)
-            print(pred)
 
         t2 = time_synchronized()
 
@@ -180,6 +182,10 @@ def detect(save_img=False):
                         n = (clss == c).sum()  # detections per class
                         s += f'{n} {c}, '  # add to string
 
+                    trans_bboxes = det[:, :4].clone()
+                    bboxes = trans_bboxes[:, :4].cpu()
+                    confs = det[:, 4]
+
                 else:
                     # Rescale boxes from img_size to im0 size
                     det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
@@ -195,12 +201,11 @@ def detect(save_img=False):
                     bboxes = trans_bboxes[:, :4]
                     confs = det[:, 4]
                     class_nums = det[:, -1]
+                    classes = class_nums
 
                     print(s)
 
-                    trans_bboxes = det[:, :4].clone()
-                    bboxes = trans_bboxes[:, :4].cpu()
-                    confs = det[:, 4]
+
 
                 # encode yolo detections and feed to tracker
                 features = encoder(im0, bboxes)

@@ -14,9 +14,7 @@ class Yolov5Engine:
 
     def infer(self, img):
         pred = self.model(img, augment=self.augment)[0]
-        print(pred)
         pred = self.nms(pred)
-        print("predicted")
         return pred
 
     def nms(self, pred):

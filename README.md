@@ -60,7 +60,8 @@ pip install opencv pycocotools tensorflow
 Run
 
 ```bash
-python clip_object_tracker.py --source data/video/cards.mp4 --url https://detect.roboflow.com/playing-cards-ow27d/1 --api_key ROBOFLOW_API_KEY
+
+ --url https://detect.roboflow.com/playing-cards-ow27d/1 --api_key ROBOFLOW_API_KEY
 ```
 
 (by default, output will be in runs/detect/exp[num])
