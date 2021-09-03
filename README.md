@@ -23,13 +23,20 @@ algorithm.
 
 # Getting Started
 
+Colab Tutorial Here:
+
+<a href="https://colab.research.google.com/drive/1aU7Jq668oMlUx6bYVv3vAQbXVLpIllNH"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"></a>
+
 ## Training your model
+
+To use the Roboflow Inference API as your detection engine:
 
 Upload, annotate, and train your model on Roboflow with [Roboflow Train](https://docs.roboflow.com/train).
 Your model will be hosted on an inference URL.
 
-In the future we will update this repository to support using other custom models
-(like YOLOv5) as the object detector (PRs welcome).
+To use YOLOv5 as your detection engine:
+
+Follow Roboflow's [Train YOLOv5 on Custom Data Tutorial](https://blog.roboflow.com/how-to-train-yolov5-on-a-custom-dataset/)
 
 ## Performing Object Tracking
 
@@ -39,8 +46,8 @@ Clone repositories
 git clone https://github.com/roboflow-ai/zero-shot-object-tracking
 cd zero-shot-object-tracking
 git clone https://github.com/openai/CLIP.git CLIP-repo
-cp -r ./CLIP-repo/clip ./clip # Unix based
-robocopy CLIP-repo/clip clip\ # Windows
+cp -r ./CLIP-repo/clip ./clip             // Unix based
+robocopy CLIP-repo/clip clip\             // Windows
 ```
 
 Install requirements (python 3.7+)
@@ -53,16 +60,22 @@ pip install -r requirements.txt
 Install requirements (anaconda python 3.8)
 ```
 conda install pytorch torchvision torchaudio -c pytorch
-conda install ftfy regex
+conda install ftfy regex tqdm requests pandas seaborn
 pip install opencv pycocotools tensorflow
 ```
 
-Run
+Run with Roboflow
 
 ```bash
-python clip_object_tracker.py --source data/video/cards.mp4 --url https://detect.roboflow.com/playing-cards-ow27d/1 --api_key ROBOFLOW_API_KEY
+
+python clip_object_tracker.py --source data/video/cards.mp4 --url https://detect.roboflow.com/playing-cards-ow27d/1 --api_key ROBOFLOW_API_KEY --info
 ```
 
+Run with YOLOv5
+```bash
+
+python clip_object_tracker.py --weights models/yolov5s.pt --source data/video/cards.mp4 --detection-engine yolov5 --info
+```
 (by default, output will be in runs/detect/exp[num])
 
 <figure class="video_container">
@@ -76,7 +89,32 @@ Help
 ```bash
 python clip_object_tracker.py -h
 ```
-
+```
+--weights WEIGHTS [WEIGHTS ...]  model.pt path(s)
+--source SOURCE                  source (video/image)
+--img-size IMG_SIZE              inference size (pixels)
+--confidence CONFIDENCE          object confidence threshold                      
+--overlap OVERLAP                IOU threshold for NMS
+--thickness THICKNESS            Thickness of the bounding box strokes
+--device DEVICE                  cuda device, i.e. 0 or 0,1,2,3 or cpu
+--view-img                       display results
+--save-txt                       save results to *.txt
+--save-conf                      save confidences in --save-txt labels
+--classes CLASSES [CLASSES ...]  filter by class: --class 0, or --class 0 2 3
+--agnostic-nms                   class-agnostic NMS
+--augment                        augmented inference
+--update                         update all models
+--project PROJECT                save results to project/name
+--name NAME                      save results to project/name
+--exist-ok                       existing project/name ok, do not increment
+--nms_max_overlap                Non-maxima suppression threshold: Maximum detection overlap.
+--max_cosine_distance            Gating threshold for cosine distance metric (object appearance).
+--nn_budget NN_BUDGET            Maximum size of the appearance descriptors allery. If None, no budget is enforced.
+--api_key API_KEY                Roboflow API Key.
+--url URL                        Roboflow Model URL.
+--info                           Print debugging info.
+--detection-engine               Which engine you want to use for object detection (yolov5, yolov4, roboflow).
+```
 ## Acknowledgements
 
 Huge thanks to:

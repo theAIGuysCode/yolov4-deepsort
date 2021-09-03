@@ -12,6 +12,9 @@ tensorboard>=2.2
 torch>=1.7.0
 torchvision>=0.8.1
 tqdm>=4.41.0
+requests==2.26.0
+pyyaml==5.4.1
+pandas==1.3.2
 
 # plotting ------------------------------------
 seaborn>=0.11.0
