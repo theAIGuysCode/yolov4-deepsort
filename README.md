@@ -23,13 +23,20 @@ algorithm.
 
 # Getting Started
 
+Colab Tutorial Here:
+
+<a href="https://colab.research.google.com/drive/1aU7Jq668oMlUx6bYVv3vAQbXVLpIllNH"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"></a>
+
 ## Training your model
+
+To use the Roboflow Inference API as your detection engine:
 
 Upload, annotate, and train your model on Roboflow with [Roboflow Train](https://docs.roboflow.com/train).
 Your model will be hosted on an inference URL.
 
-In the future we will update this repository to support using other custom models
-(like YOLOv5) as the object detector (PRs welcome).
+To use YOLOv5 as your detection engine:
+
+Follow Roboflow's [Train YOLOv5 on Custom Data Tutorial](https://blog.roboflow.com/how-to-train-yolov5-on-a-custom-dataset/)
 
 ## Performing Object Tracking
 
