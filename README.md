@@ -53,7 +53,7 @@ pip install -r requirements.txt
 Install requirements (anaconda python 3.8)
 ```
 conda install pytorch torchvision torchaudio -c pytorch
-conda install ftfy regex
+conda install ftfy regex tqdm requests pandas seaborn
 pip install opencv pycocotools tensorflow
 ```
 
