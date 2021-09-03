@@ -209,7 +209,7 @@ def detect(save_img=False):
 
                 # encode yolo detections and feed to tracker
                 features = encoder(im0, bboxes)
-                detections = [Detection(bbox, conf, class_num, feature) for bbox, conf, class_num, feature in zip(
+                detections = [Detection(bbox.cpu(), conf, class_num, feature) for bbox, conf, class_num, feature in zip(
                     bboxes, confs, classes, features)]
 
                 # run non-maxima supression
