@@ -7,9 +7,6 @@ import tensorflow as tf
 
 class Yolov4Engine:
     def __init__(self, weights, device, classes, conf_thres, iou_thres, agnostic_nms, augment, half, framework, model):
-        self.model = attempt_load(weights, map_location=device)
-        if half:
-            self.model.half()
         self.classes = classes
         self.conf_thres = conf_thres
         self.iou_thres = iou_thres
@@ -20,23 +17,26 @@ class Yolov4Engine:
 
         # load tflite model if flag is set
         if framework == 'tflite':
-            interpreter = tf.lite.Interpreter(model_path=weights)
-            interpreter.allocate_tensors()
-            input_details = interpreter.get_input_details()
-            output_details = interpreter.get_output_details()
+            self.interpreter = tf.lite.Interpreter(model_path=weights)
+            self.interpreter.allocate_tensors()
+            input_details = self.interpreter.get_input_details()
+            output_details = self.interpreter.get_output_details()
             print(input_details)
             print(output_details)
         # otherwise load standard tensorflow saved model
         else:
-            saved_model_loaded = tf.saved_model.load(weights, tags=[tag_constants.SERVING])
-            infer = saved_model_loaded.signatures['serving_default']
+            print("[YOLOv4Engine __init__] init model; weights: {}".format(weights[0]))
+            saved_model_loaded = tf.saved_model.load(weights[0], tags=[tag_constants.SERVING])
+            self.infer = saved_model_loaded.signatures['serving_default']
 
     def infer(self, img):
         # run detections on tflite if flag is set
+        print("yolov4 infer func")
+        img = img.numpy()
         if self.framework == 'tflite':
-            interpreter.set_tensor(input_details[0]['index'], image_data)
-            interpreter.invoke()
-            pred = [interpreter.get_tensor(output_details[i]['index']) for i in range(len(output_details))]
+            self.interpreter.set_tensor(input_details[0]['index'], image_data)
+            self.interpreter.invoke()
+            pred = [self.interpreter.get_tensor(output_details[i]['index']) for i in range(len(output_details))]
             # run detections using yolov3 if flag is set
             if self.model == 'yolov3' and FLAGS.tiny == True:
                 boxes, pred_conf = filter_boxes(pred[1], pred[0], score_threshold=0.25,
@@ -45,8 +45,10 @@ class Yolov4Engine:
                 boxes, pred_conf = filter_boxes(pred[0], pred[1], score_threshold=0.25,
                                                 input_shape=tf.constant([input_size, input_size]))
         else:
-            batch_data = tf.constant(image_data)
-            pred_bbox = infer(batch_data)
+            print("[YOLOv4Engine infer] img: {}".format(img))
+            #batch_data = tf.constant(img[0])
+            print("[YOLOv4Engine infer] batch_data: {}".format(batch_data))
+            #pred_bbox = self.infer(batch_data)
             for key, value in pred_bbox.items():
                 boxes = value[:, :, 0:4]
                 pred_conf = value[:, :, 4:]

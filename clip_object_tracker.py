@@ -101,6 +101,7 @@ def detect(save_img=False):
     
     # load yolov5 model here
     if opt.detection_engine == "yolov5":
+        print("loading yolov5 model")
         yolov5_engine = Yolov5Engine(opt.weights, device, opt.classes, opt.confidence, opt.overlap, opt.agnostic_nms, opt.augment, half)
         global names
         names = yolov5_engine.get_names()
@@ -136,7 +137,12 @@ def detect(save_img=False):
 
     frame_count = 0
     img = torch.zeros((1, 3, imgsz, imgsz), device=device)  # init img
-    _ = yolov5_engine.infer(img.half() if half else img) if device.type != 'cpu' else None  # run once
+    if opt.detection_engine == "yolov5":
+        _ = yolov5_engine.infer(img.half() if half else img) if device.type != 'cpu' else None  # run once
+    elif opt.detection_engine == "yolov4":
+        print("yolov4 test inference")
+        pred = yolov4_engine.infer(np.random.rand(1,3,imgsz,imgsz))
+
     for path, img, im0s, vid_cap in dataset:
 
         img = torch.from_numpy(img).to(device)
@@ -150,12 +156,15 @@ def detect(save_img=False):
         p, s, im0, frame = path, '', im0s, getattr(dataset, 'frame', 0)
 
         # choose between prediction engines (yolov5 and roboflow)
-        if (opt.detection_engine == "roboflow"):
+        if opt.detection_engine == "roboflow":
             pred, classes = predict_image(im0, opt.api_key, opt.url, opt.confidence, opt.overlap, frame_count)
             pred = [torch.tensor(pred)]
-        else:
+        elif opt.detection_engine == "yolov5":
             print("yolov5 inference")
             pred = yolov5_engine.infer(img)
+        elif opt.detection_engine == "yolov4":
+            print("yolov4 inference")
+            #pred = yolov4_engine.infer(img)
 
         t2 = time_synchronized()
 
@@ -316,10 +325,10 @@ if __name__ == '__main__':
     parser.add_argument('--info', action='store_true',
                         help='Print debugging info.')
     parser.add_argument("--detection-engine", default="roboflow", help="Which engine you want to use for object detection (yolov5, yolov4, roboflow).")
-    parser.add_argument('framework', default='tf', help='(tf, tflite, trt')
-    parser.add_argument('size', default=416, help='resize images to')
-    parser.add_argument('tiny', default=False, help='yolo or yolo-tiny')
-    parser.add_argument('model', default='yolov4', help='yolov3 or yolov4')
+    parser.add_argument('--framework', default='tf', help='(tf, tflite, trt')
+    parser.add_argument('--size', default=416, help='resize images to')
+    parser.add_argument('--tiny', default=False, help='yolo or yolo-tiny')
+    parser.add_argument('--model', default='yolov4', help='yolov3 or yolov4')
     opt = parser.parse_args()
     print(opt)
 

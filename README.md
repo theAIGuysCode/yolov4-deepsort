@@ -60,13 +60,13 @@ pip install -r requirements.txt
 Install requirements (anaconda python 3.8)
 ```
 conda install pytorch torchvision torchaudio -c pytorch
-conda install ftfy regex tqdm requests pandas seaborn
-pip3 install opencv pycocotools tensorflow
+conda install ftfy regex tqdm requests pandas seaborn pyyaml
+pip3 install opencv-python
 ```
 
 Yolov4 Requirements
 ```bash
-pip3 install tensorflow
+pip3 install tensorflow easydict
 ```
 
 Run with Roboflow
@@ -79,7 +79,16 @@ python clip_object_tracker.py --source data/video/cards.mp4 --url https://detect
 Run with YOLOv5
 ```bash
 
-python clip_object_tracker.py --weights models/yolov5s.pt --source data/video/cards.mp4 --detection-engine yolov5 --info
+python clip_object_tracker.py --weights models/yolov5s.pt --source data/video/cars.mp4 --detection-engine yolov5 --info
+
+```
+
+Run with YOLOv4
+```bash
+
+python clip_object_tracker.py --weights models/yolov5s.pt --source data/video/cars.mp4 --detection-engine yolov4 --info
+python clip_object_tracker.py --weights ./checkpoints/yolov4-416 --source data/video/cars.mp4 --detection-engine yolov4 --info --tiny yolo-tiny
+
 ```
 (by default, output will be in runs/detect/exp[num])
 
