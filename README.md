@@ -85,9 +85,11 @@ python clip_object_tracker.py --weights models/yolov5s.pt --source data/video/ca
 
 Run with YOLOv4
 ```bash
+# Convert darknet weights to tensorflow model
+python save_model.py --model yolov4 
 
-python clip_object_tracker.py --weights models/yolov5s.pt --source data/video/cars.mp4 --detection-engine yolov4 --info
-python clip_object_tracker.py --weights ./checkpoints/yolov4-416 --source data/video/cars.mp4 --detection-engine yolov4 --info --tiny yolo-tiny
+# Run Zero-Shot DeepSORT on video with yolov4 weights
+python clip_object_tracker.py --weights ./checkpoints/yolov4-416 --source data/video/cars.mp4 --detection-engine yolov4 --info
 
 ```
 (by default, output will be in runs/detect/exp[num])
@@ -102,32 +104,6 @@ Help
 
 ```bash
 python clip_object_tracker.py -h
-```
-```
---weights WEIGHTS [WEIGHTS ...]  model.pt path(s)
---source SOURCE                  source (video/image)
---img-size IMG_SIZE              inference size (pixels)
---confidence CONFIDENCE          object confidence threshold                      
---overlap OVERLAP                IOU threshold for NMS
---thickness THICKNESS            Thickness of the bounding box strokes
---device DEVICE                  cuda device, i.e. 0 or 0,1,2,3 or cpu
---view-img                       display results
---save-txt                       save results to *.txt
---save-conf                      save confidences in --save-txt labels
---classes CLASSES [CLASSES ...]  filter by class: --class 0, or --class 0 2 3
---agnostic-nms                   class-agnostic NMS
---augment                        augmented inference
---update                         update all models
---project PROJECT                save results to project/name
---name NAME                      save results to project/name
---exist-ok                       existing project/name ok, do not increment
---nms_max_overlap                Non-maxima suppression threshold: Maximum detection overlap.
---max_cosine_distance            Gating threshold for cosine distance metric (object appearance).
---nn_budget NN_BUDGET            Maximum size of the appearance descriptors allery. If None, no budget is enforced.
---api_key API_KEY                Roboflow API Key.
---url URL                        Roboflow Model URL.
---info                           Print debugging info.
---detection-engine               Which engine you want to use for object detection (yolov5, yolov4, roboflow).
 ```
 ## Acknowledgements
 
