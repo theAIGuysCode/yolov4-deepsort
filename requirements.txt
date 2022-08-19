@@ -6,3 +6,4 @@ absl-py
 easydict
 matplotlib
 pillow
+Flask
