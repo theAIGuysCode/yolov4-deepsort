@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Object-Tracking</title>
+</head>
+<style>
+
+   h1 
+   {
+     text-align:center;
+	 color:red;
+	 
+	 
+	 border:5px solid orange;
+	
+    }
+	.title
+	{
+	 padding-left:280px;
+	 padding-right:280px;
+	
+	}
+</style>
+
+<body>
+	<div class = title>
+    <h1>This is the live Stream</h1>
+	</div>
+    <div class = video>
+        
+		 <img src="{{ url_for('video') }}" width='40%'>
+    </div>
+
+</body>
+
+</html>
