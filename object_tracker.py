@@ -38,7 +38,38 @@ flags.DEFINE_boolean('dont_show', False, 'dont show video output')
 flags.DEFINE_boolean('info', False, 'show detailed info of tracked objects')
 flags.DEFINE_boolean('count', False, 'count objects being tracked on screen')
 
+def get_speed(dist,frame1,frame2,fps):
+    t=frame2-frame1
+    speed=(dist*fps)/t
+    speed=speed*60*60 
+    speed=speed/1000
+    return speed
+
+def init_array(n,k):
+    arr=[]
+    j=0
+    while(j<n):
+        arr.append(k)
+        j=j+1
+    return arr
+    
+def print_speeds(max_v,max_tid,dist,enter_frame,exit_frame,mf,mfps):
+    j=0
+    while(j<max_v and j<=max_tid):
+        if(mf[j]==2):
+            speed=get_speed(dist,enter_frame[j],exit_frame[j],mfps)
+            print("speed of vehicle id : "+str(j) + " is " + str(speed) + "\n")
+        j=j+1
+
+
 def main(_argv):
+    print("halo :D test 2\n")
+    
+    #distance and pixel line declarations
+    dist=20
+    line1=433
+    line2=604
+    
     # Definition of the parameters
     max_cosine_distance = 0.4
     nn_budget = None
@@ -91,6 +122,22 @@ def main(_argv):
         out = cv2.VideoWriter(FLAGS.output, codec, fps, (width, height))
 
     frame_num = 0
+    
+    
+    # my_vars
+
+    width = int(vid.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(vid.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    mfps = int(vid.get(cv2.CAP_PROP_FPS))
+    max_v=100000
+    enter_frame=init_array(max_v,-1)
+    exit_frame=init_array(max_v,-1)
+    mf=init_array(max_v,0)
+    prev=init_array(max_v,15000)
+    max_tid=-1
+
+    print("resolution is "+ str(height) + " x " + str(width) + "\n")
+    print("fps is " + str(mfps) + "\n")
     # while video is running
     while True:
         return_value, frame = vid.read()
@@ -160,7 +207,7 @@ def main(_argv):
         allowed_classes = list(class_names.values())
         
         # custom allowed classes (uncomment line below to customize tracker for only people)
-        #allowed_classes = ['person']
+        allowed_classes = ['car','truck','bus','motorbike']
 
         # loop through objects and use class index to get class name, allow only classes in allowed_classes list
         names = []
@@ -213,11 +260,28 @@ def main(_argv):
             cv2.rectangle(frame, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), color, 2)
             cv2.rectangle(frame, (int(bbox[0]), int(bbox[1]-30)), (int(bbox[0])+(len(class_name)+len(str(track.track_id)))*17, int(bbox[1])), color, -1)
             cv2.putText(frame, class_name + "-" + str(track.track_id),(int(bbox[0]), int(bbox[1]-10)),0, 0.75, (255,255,255),2)
+        #draw lines
+            cv2.line(frame, (1, line1), (width-1, line1), (0, 0, 255), 2)
+            # cv2.putText(frame, ('LINE 1'), (172, 198), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1, cv2.LINE_AA)
+            cv2.line(frame, (1, line2), (width-1, line2), (255, 0, 0), 2)
+            # cv2.putText(frame, ('LINE 2'), (8, 268), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1, cv2.LINE_AA)
 
         # if enable info flag then print details about each track
             if FLAGS.info:
                 print("Tracker ID: {}, Class: {},  BBox Coords (xmin, ymin, xmax, ymax): {}".format(str(track.track_id), class_name, (int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3]))))
+            tid=track.track_id
+            ymin=bbox[3]
+            if(tid<max_v):
+                if(mf[tid]==0 and ymin>=line1 and prev[tid]<=line1):
+                    mf[tid]=1
+                    enter_frame[tid]=frame_num
+                if(mf[tid]==1 and ymin>=line2 and prev[tid]<=line2):
+                    mf[tid]=2
+                    exit_frame[tid]=frame_num
+                    max_tid=max(max_tid,tid)
+                prev[tid]=ymin
 
+        
         # calculate frames per second of running detections
         fps = 1.0 / (time.time() - start_time)
         print("FPS: %.2f" % fps)
@@ -231,6 +295,8 @@ def main(_argv):
         if FLAGS.output:
             out.write(result)
         if cv2.waitKey(1) & 0xFF == ord('q'): break
+
+    print_speeds(max_v,max_tid,dist,enter_frame,exit_frame,mf,mfps)
     cv2.destroyAllWindows()
 
 if __name__ == '__main__':
